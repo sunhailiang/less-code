@@ -16,6 +16,38 @@
 .editor > .left {
   left: 0;
 }
+.editor > .left .left-item {
+  width: 250px;
+  margin: 20px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  padding: 40px;
+  box-sizing: border-box;
+  cursor: move;
+  user-select: none;
+  position: relative;
+}
+.editor > .left .left-item > span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #60cde0;
+  color: white;
+  padding: 4px;
+  font-size: 12px;
+}
+.editor > .left .left-item::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ccc;
+  opacity: 0.2;
+}
 .editor > .top {
   position: absolute;
   right: 280px;

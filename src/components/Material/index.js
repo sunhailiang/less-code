@@ -1,8 +1,10 @@
-import { ElButton } from "element-plus";
-import "element-plus/lib/";
-let els = [ElButton];
-export default (app) => {
-  els.forEach((item) => {
-    app.use(item);
-  });
+import { ElButton, ElInput } from "element-plus";
+import "element-plus/dist/index.css";
+let els = [ElButton, ElInput];
+export default {
+  useElementPlus: (app) => {
+    els.forEach((item) => {
+      app.component(item.name, item);
+    });
+  },
 };
