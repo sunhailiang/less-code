@@ -83,16 +83,6 @@ export default defineComponent({
           props.clearBlocksFocus();
         },
       },
-      {
-        label: "完成编辑",
-        icon: "iconfont icon-wancheng",
-
-        handler: () => {
-          // eslint-disable-next-line vue/no-mutating-props
-          props.editorComplete.value = true;
-          props.clearBlocksFocus();
-        },
-      },
     ];
     return () => {
       return (
