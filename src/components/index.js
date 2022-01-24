@@ -1,5 +1,4 @@
 import useElementPlus from "./Material";
-
-export default (app) => {
-  useElementPlus.useElementPlus(app);
-};
+import { $Dialog } from "./Dialog";
+import { $Dropdown } from "./Dropdown";
+export { useElementPlus, $Dialog, $Dropdown };

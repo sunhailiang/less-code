@@ -1,5 +1,5 @@
-import bus from "@/utils/eventBus";
-
+import bus from "@/utils/eventBus"; // eventbus
+import { events } from "./events"; // mitt发布订阅
 export default (props) => {
   let currentComponent = null;
   const dragenter = (e) => {
@@ -51,15 +51,20 @@ export default (props) => {
 
     //drop 释放时根据拖拽的组件给画布上添加一个组件
     target.addEventListener("drop", drop);
+    // 发布开始拖拽
+    events.emit("dragStart");
   };
   // 拖拽结束后释放监听事件
   const dragEnd = () => {
+    console.log("拖拽结束");
     // 获取目标容器
     const target = props.container.value;
     target.removeEventListener("dragenter", dragenter);
     target.removeEventListener("dragover", dragover);
     target.removeEventListener("dragleave", dragleave);
     target.removeEventListener("drop", drop);
+    // 发布拖拽结束
+    events.emit("dragEnd");
   };
 
   return { drop, dragStart, dragEnd };

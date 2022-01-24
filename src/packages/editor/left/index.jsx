@@ -25,7 +25,7 @@ export default defineComponent({
           className="left-item"
           draggable
           onDragstart={(e) => dragStart(e, component)}
-          onDragEnd={(e) => dragEnd(e, component)}
+          onDragend={(e) => dragEnd(e, component)}
         >
           <span>{component.label}</span>
           <div>{component.preview()}</div>

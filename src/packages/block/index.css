@@ -12,3 +12,6 @@
 .editor-block-focus::after {
   border: dashed 1px red;
 }
+.editor-preview::after {
+  display: none;
+}

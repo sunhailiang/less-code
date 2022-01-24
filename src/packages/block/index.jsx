@@ -28,6 +28,10 @@ export default defineComponent({
         // eslint-disable-next-line vue/no-mutating-props
         props.block.alignCenter = false;
       }
+      // eslint-disable-next-line vue/no-mutating-props
+      props.block.height = offsetHeight;
+      // eslint-disable-next-line vue/no-mutating-props
+      props.block.width = offsetWidth;
     });
     return () => {
       const component = config.componentMap[props.block.key];

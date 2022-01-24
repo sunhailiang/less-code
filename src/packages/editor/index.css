@@ -54,6 +54,9 @@
   left: 280px;
   height: 80px;
   background-color: seagreen;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .editor > .editor-container {
   padding: 90px 280px 0;
@@ -64,8 +67,20 @@
 .editor > .editor-container .canvas-container {
   overflow: scroll;
   height: 100%;
-  background-color: rebeccapurple;
 }
 .editor > .editor-container .canvas-container .canvas {
   position: relative;
+  background-color: rebeccapurple;
+}
+.editor > .editor-container .canvas-container .canvas .line-x {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed red;
+}
+.editor > .editor-container .canvas-container .canvas .line-y {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-bottom: 1px dashed red;
 }
