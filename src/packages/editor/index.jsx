@@ -6,10 +6,15 @@ import Top from "./top";
 import deepcopy from "deepcopy";
 import bus from "@/utils/eventBus";
 import events from "./editor-utils/editor";
+import { onContextMenuBlock } from "./editor-utils/contextMenu";
+import Right from "./right";
 
 export default defineComponent({
   props: {
     modelValue: {
+      type: Object,
+    },
+    formData: {
       type: Object,
     },
   },
@@ -24,6 +29,7 @@ export default defineComponent({
         ctx.emit("update:modelValue", deepcopy(newVal));
       },
     });
+
     //预览功能：预览时，画布不允许编辑，也样式内容，基本输入功能体验
     const preview = ref(false);
     //完成编辑,直接退出画布状态，完成当前页面编辑
@@ -34,22 +40,17 @@ export default defineComponent({
     });
     // 画布上选中元素
     const {
-      onContextMenuBlock,
       blockMousedown,
       canvasMousedown,
       focusData,
       markLine,
       mousdown,
-      lastSelectBlock,
       clearBlocksFocus,
+      lastSelectBlock,
     } = events(data, preview, (e) => {
-      console.log("获取选中的元素", focusData.value.focused);
-      console.log("最后返回谁？", lastSelectBlock);
-      console.log("参考线", markLine);
       //选中后开始拖拽
       mousdown(e);
     });
-    // 自由拖拽画布上的元素
 
     // 画布数据
     const canvasStyle = computed(() => ({
@@ -94,7 +95,9 @@ export default defineComponent({
             />
           </div>
           {/* 属性 */}
-          <div class="right">组件属性</div>
+          <div class="right">
+            <Right lastSelectBlock={lastSelectBlock.value} data={data}></Right>
+          </div>
           {/* 画布 */}
           <div class="editor-container">
             {/* 产生滚动条 */}
@@ -114,7 +117,7 @@ export default defineComponent({
                     // 选中加个样式
                     class={block.focus ? "editor-block-focus" : ""}
                     class={preview.value ? "editor-preview" : ""}
-                    onContextmenu={(e) => onContextMenuBlock(e, block)}
+                    onContextmenu={(e) => onContextMenuBlock(e, block, data)}
                   />
                 ))}
                 {

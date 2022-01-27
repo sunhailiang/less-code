@@ -25,6 +25,8 @@ export default (props) => {
           zIndex: 1,
           key: currentComponent.key,
           alignCenter: true, // 初次拖拽到画布时希望居中
+          props: {}, // 为了新拖拽到画布的元素也有对应的属性可以编辑，所以这也要带一个
+          model: {}, // 需要双向绑定的数据放在model
         },
       ],
     };

@@ -13,7 +13,6 @@ export default (props) => {
     commandArray: [], // 存放命令
     destroyArray: [], // 销毁列表
   };
-
   // 命令注册
   const registry = (command) => {
     state.commandArray.push(command);
@@ -108,11 +107,12 @@ export default (props) => {
       };
     },
   });
-  // 为导入json注册注册事件，存放在事件队列中，方便回退和重做
+  // 为导入json注册事件，更新画布，存放在事件队列中，方便回退和重做
   registry({
-    name: "importUpdateContainer",
+    name: "updateContainer",
     pushQueue: true,
     execute(newValue) {
+      console.log("没变？", newValue);
       // 新的就是传进来的json模版
       // 旧的就是原来的布局样式
       let state = {
@@ -122,11 +122,39 @@ export default (props) => {
       return {
         back: () => {
           // 回退
-          props.value = state.after;
+          props.value.container = state.after.container;
+          console.log("props", props.value.container, state.after.container);
         },
         forward: () => {
           // 重做
           props.value = state.before;
+        },
+      };
+    },
+  });
+  // 导入组件，更新节点
+  registry({
+    name: "updateBlock",
+    pushQueue: true,
+    execute(newblock, oldblock) {
+      let state = {
+        before: props.value.block,
+        after: (() => {
+          let blocks = [...props.value.blocks];
+          // 替换选中节点
+          const idx = props.value.blocks.indexOf(oldblock);
+          if (idx > -1) {
+            blocks.splice(idx, 1, newblock);
+          }
+          return blocks;
+        })(),
+      };
+      return {
+        back: () => {
+          props.value = { ...props.value, blocks: state.after };
+        },
+        forward: () => {
+          props.value = { ...props.value, blocks: state.before };
         },
       };
     },
@@ -198,11 +226,14 @@ export default (props) => {
         before: deepcopy(props.value.blocks),
         after: focusData.value.unfocused, // 选中都干掉了，剩下的只有未选中
       };
+      console.log("不同之处", props.value);
       return {
         back: () => {
+          console.log("back", state);
           props.value = { ...props.value, blocks: state.after };
         },
         forward: () => {
+          console.log("forward", state);
           props.value = { ...props.value, blocks: state.before };
         },
       };

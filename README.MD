@@ -1110,10 +1110,10 @@ const buttons = [
     handler: () =>
       $Dialog({
         title: "导入JSON",
-        content: "fuckyou",
+        content: "导入json生成页面",
         footer: true,
         onConfirm: (data) => {
-          commands.importUpdateContainer(JSON.parse(data));
+          commands.updateContainer(JSON.parse(data));
         },
       }),
   },
@@ -1153,10 +1153,10 @@ const buttons = [
     handler: () =>
       $Dialog({
         title: "导入JSON",
-        content: "fuckyou",
+        content: "导入json生成页面",
         footer: true,
         onConfirm: (data) => {
-          commands.importUpdateContainer(JSON.parse(data));
+          commands.updateContainer(JSON.parse(data));
         },
       }),
   },
@@ -1168,7 +1168,7 @@ const buttons = [
 ```js
 // 为导入json注册注册事件，存放在事件队列中，方便回退和重做
 registry({
-  name: "importUpdateContainer",
+  name: "updateContainer",
   pushQueue: true,
   execute(newValue) {
     // 新的就是传进来的json模版
@@ -1364,5 +1364,469 @@ const buttons = [
 ## 元素编辑菜单（鼠标右击）
 
 - 注册菜单事件
-- 写菜单组件
-- 菜单事件绑定
+  - 肯定为每一个 block 去绑定了
+  - packages/editor/
+
+```js
+// 渲染子组件
+<Block
+  block={block}
+  onMousedown={(e) => blockMousedown(e, block, index)}
+  // 选中加个样式
+  class={block.focus ? "editor-block-focus" : ""}
+  class={preview.value ? "editor-preview" : ""}
+  onContextmenu={(e) => onContextMenuBlock(e, block, data)}
+/>
+```
+
+- 下拉菜单封装
+  - components/Dropdown/components/DropdownItem
+
+```js
+import { defineComponent, inject } from "vue";
+import "./style/index.less";
+export const DropdownItem = defineComponent({
+  props: {
+    label: String,
+    icon: String,
+  },
+  setup(props) {
+    // eslint-disable-next-line vue/no-setup-props-destructure
+    let { label, icon } = props;
+    // 点击后关闭
+    let dropdownHide = inject("dropdownHide");
+    return () => (
+      <div class="dropdown-item" onClick={dropdownHide}>
+        <i class={icon}></i>
+        <span>{label}</span>
+      </div>
+    );
+  },
+});
+```
+
+- 事件捆绑（顶部菜单的功能，直接绑上即可-bug）
+- packages/editor/editor-utils/contextMenu
+
+```js
+import { $Dropdown, DropdownItem } from "@/components";
+import useTop from "./top";
+import { $Dialog } from "@/components";
+
+export const onContextMenuBlock = (e, block, data) => {
+  e.preventDefault();
+  let { commands } = useTop(data);
+
+  $Dropdown({
+    el: e.target,
+    block,
+    content: () => {
+      return (
+        <>
+          <DropdownItem
+            label="删除"
+            icon="iconfont icon-shanchu"
+            onClick={() => commands.delete()}
+          ></DropdownItem>
+          <DropdownItem
+            label="置顶"
+            icon="iconfont icon-dingceng"
+            onClick={() => commands.toMaxIndex()}
+          ></DropdownItem>
+          <DropdownItem
+            label="置底"
+            icon="iconfont icon-diceng"
+            onClick={() => commands.toLowIndex()}
+          ></DropdownItem>
+          <DropdownItem
+            label="查看"
+            icon="iconfont icon-daochu"
+            onClick={() => {
+              $Dialog({
+                title: "查看节点",
+                content: JSON.stringify(block),
+              });
+            }}
+          ></DropdownItem>
+          <DropdownItem
+            label="替换"
+            icon="iconfont icon-daoru"
+            onClick={() => {
+              $Dialog({
+                title: "导入节点数据",
+                content: "",
+                footer: true,
+                onConfirm(data) {
+                  data = JSON.parse(data);
+                  // 替换组件
+                  commands.updateBlock(data, block);
+                },
+              });
+            }}
+          ></DropdownItem>
+        </>
+      );
+    },
+  });
+};
+```
+
+## 右侧属性菜单
+
+- 没有选中元素时，默认画布
+- 选中元素是，切换元素附带的属性
+  - 元素有哪些属性可供修改？
+  - utils/editor-config/
+  - 为页面匹配的组件添加属性，当我点击该组件时
+
+```js
+//map
+//匹配右侧属性菜单-工厂函数
+const createInputProp = (label) => ({ type: "input", label });
+const createColor = (label) => ({ type: "color", label });
+const createSelectProp = (label, option) => ({ type: "select", label, option });
+// 物料区注册列表
+// 画布区map映射
+let createEditorConfig = () => {
+  // 物料列表-物料区列表
+  let componentList = [];
+  // 组件map列表-匹配到画布中
+  let componentMap = {};
+
+  return {
+    // 注册组件
+    register: (components) => {
+      // 物料列表
+      componentList.push(...components);
+      // 画布组件列表
+      components.map((item) => {
+        componentMap[item.key] = item;
+      });
+    },
+    componentList,
+    componentMap,
+  };
+};
+let registerConfig = createEditorConfig();
+
+registerConfig.register([
+  {
+    label: "文本",
+    preview: () => "文本预览",
+    render: () => "渲染文本",
+    key: "text",
+    props: {
+      text: createInputProp("文本内容"),
+      color: createColor("字体颜色"),
+      size: createSelectProp("字体大小", [
+        { label: "12px", value: "12px" },
+        { label: "14px", value: "14px" },
+        { label: "15px", value: "15px" },
+        { label: "16px", value: "16px" },
+        { label: "18px", value: "18px" },
+        { label: "20px", value: "20px" },
+      ]),
+    },
+  },
+  {
+    label: "按钮",
+    preview: () => <ElButton type="success">预览按钮</ElButton>,
+    render: () => <ElButton type="success">渲染按钮</ElButton>,
+    key: "button",
+    props: {
+      text: createInputProp("按钮文本"),
+      color: createColor("字体颜色"),
+      type: createSelectProp("按钮类型", [
+        { label: "基础", value: "primary" },
+        { label: "成功", value: "success" },
+        { label: "警告", value: "warning" },
+        { label: "失败", value: "danger" },
+        { label: "文本", value: "text" },
+      ]),
+      size: createSelectProp("按钮尺寸", [
+        { label: "默认", value: "" },
+        { label: "中等", value: "mddium" },
+        { label: "小", value: "small" },
+        { label: "极小", value: "mini" },
+      ]),
+    },
+  },
+  {
+    label: "输入框",
+    preview: () => <ElInput placeholder="预览输入框" />,
+    render: () => <ElInput placeholder="渲染输入框" />,
+    key: "input",
+    props: {
+      text: createInputProp("文本内容"),
+    },
+  },
+]);
+// 导出配置
+export default registerConfig;
+```
+
+- 点击元素把可配置的属性渲染到右侧
+
+```js
+import { defineComponent, inject } from "vue";
+import {
+  ElForm,
+  ElFormItem,
+  ElButton,
+  ElInputNumber,
+  ElColorPicker,
+  ElSelect,
+  ElOption,
+} from "element-plus";
+import "./index.less";
+export default defineComponent({
+  props: {
+    lastSelectBlock: {
+      type: Object,
+    },
+    data: {
+      type: Object,
+    },
+  },
+  setup(props) {
+    console.log("propspropsprops", props);
+
+    let config = inject("config");
+
+    return () => {
+      let content = [];
+      // 默认没有选中元素时，右侧属性菜单，展示画布宽高
+      if (!props.lastSelectBlock) {
+        content.push(
+          <>
+            <ElFormItem label="容器宽度">
+              <ElInputNumber></ElInputNumber>
+            </ElFormItem>
+            <ElFormItem label="容器高度">
+              <ElInputNumber></ElInputNumber>
+            </ElFormItem>
+          </>
+        );
+      } else {
+        // 匹配最后一个选中的元素
+        let component = config.componentMap[props.lastSelectBlock.key];
+        // 拿到选中元素挂载的属性，生成菜单
+        if (component && component.props) {
+          let res = Object.entries(component.props).map(
+            ([name, propconfig]) => {
+              console.log("k:v", name, propconfig);
+              return (
+                <ElFormItem label={propconfig.label}>
+                  {{
+                    input: () => <ElInput></ElInput>,
+                    color: () => <ElColorPicker></ElColorPicker>,
+                    select: () => (
+                      // select 类型的获取option
+                      <ElSelect>
+                        {propconfig.option.map((option) => {
+                          return (
+                            <ElOption
+                              label={option.label}
+                              value={option.value}
+                            ></ElOption>
+                          );
+                        })}
+                      </ElSelect>
+                    ),
+                  }[propconfig.type]()}
+                </ElFormItem>
+              );
+            }
+          );
+          content.push(res);
+        }
+      }
+      return (
+        <ElForm labelPosition="top" class="right-form">
+          {content}
+
+          <ElFormItem>
+            <ElButton type="primary">应用</ElButton>
+            <ElButton>重置</ElButton>
+          </ElFormItem>
+        </ElForm>
+      );
+    };
+  },
+});
+```
+
+- 元素属性配置
+  - 为 data 新增 props 属性，并附带默认属性值
+
+```js
+{
+  "container": {
+    "width": 1320,
+    "height": 765,
+    "background": "#fff"
+  },
+  "blocks": [
+    {
+      "top": 100,
+      "left": 100,
+      "zIndex": 1,
+      "key": "text",
+      "props": {
+        "text": "南燕前端",
+        "color": "#ff0000",
+        "size": "14px"
+      }
+    },
+    {
+      "top": 200,
+      "left": 200,
+      "zIndex": 1,
+      "key": "button",
+      "props": {
+        "text": "常规按钮",
+        "type": "primary",
+        "size": "default"
+      }
+    },
+    {
+      "top": 300,
+      "left": 300,
+      "zIndex": 1,
+      "key": "input",
+      "props": {}
+    }
+  ]
+}
+
+```
+
+- 在 map 中新增可选属性
+  - utils/editor-config
+
+```js
+// 物料组件map
+
+//匹配右侧属性菜单-工厂函数
+const createInputProp = (label) => ({ type: "input", label });
+const createColor = (label) => ({ type: "color", label });
+const createSelectProp = (label, option) => ({ type: "select", label, option });
+// 物料区注册列表
+// 画布区map映射
+let createEditorConfig = () => {
+  // 物料列表-物料区列表
+  let componentList = [];
+  // 组件map列表-匹配到画布中
+  let componentMap = {};
+
+  return {
+    // 注册组件
+    register: (components) => {
+      // 物料列表
+      componentList.push(...components);
+      // 画布组件列表
+      components.map((item) => {
+        componentMap[item.key] = item;
+      });
+    },
+    componentList,
+    componentMap,
+  };
+};
+let registerConfig = createEditorConfig();
+
+registerConfig.register([
+  {
+    label: "文本",
+    preview: () => "文本预览",
+    // 此处的props是在拖拽时，传进来的该组件自带的可配置的参数
+    render: ({ props }) => (
+      <span style={{ color: props.color, fontSize: props.size }}>
+        {props.text || "渲染文本"}
+      </span>
+    ),
+    key: "text",
+    props: {
+      text: createInputProp("文本内容"),
+      color: createColor("字体颜色"),
+      size: createSelectProp("字体大小", [
+        { label: "12px", value: "12px" },
+        { label: "14px", value: "14px" },
+        { label: "15px", value: "15px" },
+        { label: "16px", value: "16px" },
+        { label: "18px", value: "18px" },
+        { label: "20px", value: "20px" },
+      ]),
+    },
+  },
+  {
+    label: "按钮",
+    preview: () => <ElButton type="success">预览按钮</ElButton>,
+    // 此处的props是在拖拽时，传进来的该组件自带的可配置的参数
+    render: ({ props }) => (
+      <ElButton type={props.type} size={props.size}>
+        {props.text || "按钮"}
+      </ElButton>
+    ),
+    key: "button",
+    props: {
+      text: createInputProp("按钮文本"),
+      color: createColor("字体颜色"),
+      type: createSelectProp("按钮类型", [
+        { label: "基础", value: "primary" },
+        { label: "成功", value: "success" },
+        { label: "警告", value: "warning" },
+        { label: "失败", value: "danger" },
+        { label: "文本", value: "text" },
+      ]),
+      size: createSelectProp("按钮尺寸", [
+        { label: "大", value: "large" },
+        { label: "默认", value: "default" },
+        { label: "小", value: "small" },
+      ]),
+    },
+  },
+  {
+    label: "输入框",
+    preview: () => <ElInput placeholder="预览输入框" />,
+    render: () => <ElInput placeholder="渲染输入框" />,
+    key: "input",
+    props: {
+      text: createInputProp("文本内容"),
+    },
+  },
+]);
+// 导出配置
+export default registerConfig;
+```
+
+- 新拖拽的元素也要有 props
+- packages/editor/editor-utils/left
+
+```js
+const drop = (e) => {
+  // 释放时匹配当前拖拽的组件
+  let blocks = props.coreData.value.blocks;
+
+  let coreData = {
+    ...props.coreData.value,
+    blocks: [
+      ...blocks,
+      {
+        top: e.offsetY,
+        left: e.offsetX,
+        zIndex: 1,
+        key: currentComponent.key,
+        alignCenter: true, // 初次拖拽到画布时希望居中
+        props: {}, // 为了新拖拽到画布的元素也有对应的属性可以编辑，所以这也要带一个
+      },
+    ],
+  };
+  bus.emit("getCoreData", coreData);
+  // 匹配完成后，释放元素
+  currentComponent = null;
+};
+```
+
+- 属性的双向绑定设置
+- 比如输入框内容和 placeholder 等

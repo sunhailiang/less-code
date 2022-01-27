@@ -1,0 +1,29 @@
+.dropdown-item {
+  line-height: 30px;
+  width: 100px;
+  border-bottom: 1px solid #ccc;
+  text-align: center;
+  &:last-child {
+    border-bottom: none;
+  }
+  color: #191970;
+  font-size: 12px;
+
+  &:nth-child(2),
+  &:nth-child(3) {
+    span {
+      margin-left: 0;
+    }
+  }
+  &:nth-child(1),
+  &:nth-child(4),
+  &:nth-child(5) {
+    span {
+      margin-left: 6px;
+    }
+  }
+  &:hover {
+    opacity: 0.4;
+    cursor: pointer;
+  }
+}

@@ -7,6 +7,7 @@ import {
   ref,
   onMounted,
   onBeforeUnmount,
+  provide,
 } from "vue";
 // import { ElDropdown } from "element-plus";
 import "./style/index.less";
@@ -32,6 +33,7 @@ const DialogComponent = defineComponent({
         state.left = left + width;
       },
     });
+
     // 计算类名
     const classes = computed(() => [
       "dropdown",
@@ -40,6 +42,10 @@ const DialogComponent = defineComponent({
       },
     ]);
 
+    // 控制执行方法后，dropdown消失
+    provide("dropdownHide", () => {
+      state.isShow = false;
+    });
     // 计算显示位置
     const style = computed(() => ({
       top: state.top + "px",
@@ -64,7 +70,7 @@ const DialogComponent = defineComponent({
     return () => {
       return (
         <div class={classes.value} style={style.value} ref={el}>
-          菜单功能
+          {state.option.content()}
         </div>
       );
     };

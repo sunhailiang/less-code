@@ -1,6 +1,5 @@
 import { computed, ref, reactive } from "vue";
 import { events } from "./events";
-import { $Dropdown } from "@/components";
 
 export default function editorEvent(data, preview, callback) {
   // 参考线开始=====
@@ -221,15 +220,6 @@ export default function editorEvent(data, preview, callback) {
     document.removeEventListener("mouseup", mouseup);
   };
 
-  // 元素编辑菜单
-  const onContextMenuBlock = (e, block) => {
-    e.preventDefault();
-    $Dropdown({
-      el: e.target,
-      block,
-    });
-  };
-
   return {
     blockMousedown,
     canvasMousedown,
@@ -238,6 +228,5 @@ export default function editorEvent(data, preview, callback) {
     lastSelectBlock,
     markLine,
     clearBlocksFocus,
-    onContextMenuBlock,
   };
 }

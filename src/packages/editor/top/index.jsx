@@ -21,7 +21,7 @@ export default defineComponent({
     },
   },
   setup(props) {
-    let { commands } = useTop(props.coreData, props.focusData);
+    let { commands } = useTop(props.coreData);
 
     const buttons = [
       {
@@ -51,10 +51,10 @@ export default defineComponent({
         handler: () =>
           $Dialog({
             title: "导入JSON",
-            content: "fuckyou",
+            content: "粘贴json生成页面",
             footer: true,
             onConfirm: (data) => {
-              commands.importUpdateContainer(JSON.parse(data));
+              commands.updateContainer(JSON.parse(data));
             },
           }),
       },

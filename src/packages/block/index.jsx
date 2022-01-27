@@ -5,6 +5,9 @@ export default defineComponent({
     block: {
       type: Object,
     },
+    formData: {
+      type: Object,
+    },
   },
 
   setup(props) {
@@ -35,7 +38,10 @@ export default defineComponent({
     });
     return () => {
       const component = config.componentMap[props.block.key];
-      const renderComponent = component.render();
+      // 此处render是组件自己的render，props:是该组件所有的可配置的属性
+      const renderComponent = component.render({
+        props: props.block.props,
+      });
       return (
         <div class="block" style={blockStyle.value} ref={blockRef}>
           {renderComponent}

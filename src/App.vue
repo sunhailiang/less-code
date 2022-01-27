@@ -1,6 +1,6 @@
 <template>
   <div class="lcdp">
-    <Editor v-model="state" />
+    <Editor v-model="state" :formData="formData" />
   </div>
 </template>
 
@@ -18,8 +18,14 @@ export default {
     const state = ref(coreData);
     // 注入组件配置,在用到的地方随时可取
     provide("config", EditorConfig);
+    // 传入常用表单输入内容
+    const formData = ref({
+      username: "用户名",
+      pwd: "密码",
+    });
     return {
       state,
+      formData,
     };
   },
 };
