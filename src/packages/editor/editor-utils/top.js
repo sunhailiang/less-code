@@ -226,14 +226,11 @@ export default (props) => {
         before: deepcopy(props.value.blocks),
         after: focusData.value.unfocused, // 选中都干掉了，剩下的只有未选中
       };
-      console.log("不同之处", props.value);
       return {
         back: () => {
-          console.log("back", state);
           props.value = { ...props.value, blocks: state.after };
         },
         forward: () => {
-          console.log("forward", state);
           props.value = { ...props.value, blocks: state.before };
         },
       };

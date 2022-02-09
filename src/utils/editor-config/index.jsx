@@ -1,9 +1,12 @@
 // 物料组件map
+// 使用自定义物料
+import Range from "../../components/Range";
 
 //匹配右侧属性菜单-工厂函数
 const createInputProp = (label) => ({ type: "input", label });
 const createColor = (label) => ({ type: "color", label });
 const createSelectProp = (label, option) => ({ type: "select", label, option });
+const createTableProp = (label, table) => ({ type: "table", label, table });
 // 物料区注册列表
 // 画布区map映射
 let createEditorConfig = () => {
@@ -82,13 +85,74 @@ registerConfig.register([
   {
     label: "输入框",
     preview: () => <ElInput placeholder="预览输入框" />,
-    render: () => <ElInput placeholder="请输入" />,
+    render: ({ model }) => {
+      return <ElInput placeholder="请输入" {...model.default} />;
+    },
     key: "input",
     props: {
       text: createInputProp("文本内容"),
     },
     model: {
-      // 此处一个是key一个是label，混合一起写
+      default: "绑定字段",
+    },
+  },
+  {
+    label: "范围选择器",
+    preview: () => <Range />,
+    render: ({ model }) => {
+      console.log("range", model);
+      return (
+        <Range
+          {...{
+            start: model.start.modelValue,
+            end: model.end.modelValue,
+            "onUpdate:start": model.start["onUpdate:modelValue"],
+            "onUpdate:end": model.end["onUpdate:modelValue"],
+          }}
+        />
+      );
+    },
+    model: {
+      start: "开始范围",
+      end: "结束范围",
+    },
+    key: "range",
+  },
+  {
+    label: "下拉框",
+    preview: () => <ElSelect modelValue=""></ElSelect>,
+    render: ({ props, model }) => {
+      return (
+        <ElSelect {...model.default}>
+          {(props.options || []).map((item, index) => {
+            return (
+              <ElOption
+                label={item.label}
+                value={item.value}
+                key={index}
+              ></ElOption>
+            );
+          })}
+        </ElSelect>
+      );
+    },
+    key: "select",
+    props: {
+      options: createTableProp("下拉选项", {
+        options: [
+          {
+            label: "显示值",
+            field: "label",
+          },
+          {
+            label: "绑定值",
+            field: "value",
+          },
+        ],
+        key: "label",
+      }),
+    },
+    model: {
       default: "绑定字段",
     },
   },

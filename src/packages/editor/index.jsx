@@ -14,6 +14,7 @@ export default defineComponent({
     modelValue: {
       type: Object,
     },
+    // 动态给输入框绑定的字段
     formData: {
       type: Object,
     },
@@ -66,8 +67,14 @@ export default defineComponent({
           <div class="canvas" style={canvasStyle.value} ref={containerRef}>
             {data.value.blocks.map((block) => (
               // 渲染子组件
-              <Block block={block} class={"editor-preview"} />
+              <Block
+                block={block}
+                class={"editor-preview"}
+                formData={props.formData}
+              />
             ))}
+            {JSON.stringify(props.formData)}
+
             <ElButton
               type="primary"
               onClick={() => (editorComplete.value = false)}
@@ -112,6 +119,7 @@ export default defineComponent({
                 {data.value.blocks.map((block, index) => (
                   // 渲染子组件
                   <Block
+                    formData={props.formData}
                     block={block}
                     onMousedown={(e) => blockMousedown(e, block, index)}
                     // 选中加个样式

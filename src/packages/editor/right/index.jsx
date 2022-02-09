@@ -11,6 +11,7 @@ import {
 } from "element-plus";
 import "./index.less";
 import useTop from "../editor-utils/top";
+import selectEditor from "./utils/select-editor";
 export default defineComponent({
   props: {
     lastSelectBlock: {
@@ -106,12 +107,31 @@ export default defineComponent({
                         })}
                       </ElSelect>
                     ),
+                    table: () => (
+                      <selectEditor
+                        propConfig={propconfig}
+                        v-model={state.editData.props[propsname]}
+                      />
+                    ),
                   }[propconfig.type]()}
                 </ElFormItem>
               );
             }
           );
           content.push(res);
+        }
+
+        // 通过判断组件的model字段判断是否可以绑定字段，数据双向绑定
+        if (component && component.model) {
+          content.push(
+            Object.entries(component.model).map(([modelName, label]) => {
+              return (
+                <ElFormItem label={label}>
+                  <ElInput v-model={state.editData.model[modelName]}></ElInput>
+                </ElFormItem>
+              );
+            })
+          );
         }
       }
       return (

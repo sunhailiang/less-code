@@ -41,6 +41,16 @@ export default defineComponent({
       // 此处render是组件自己的render，props:是该组件所有的可配置的属性
       const renderComponent = component.render({
         props: props.block.props,
+        // 通过model实现数据绑定，以及通过onUpdate:modelValue数据双向绑定
+        model: Object.keys(component.model || {}).reduce((prev, modelName) => {
+          let propName = props.block.model[modelName];
+          prev[modelName] = {
+            modelValue: props.formData[propName],
+            // eslint-disable-next-line vue/no-mutating-props
+            "onUpdate:modelValue": (v) => (props.formData[propName] = v),
+          };
+          return prev;
+        }, {}),
       });
       return (
         <div class="block" style={blockStyle.value} ref={blockRef}>

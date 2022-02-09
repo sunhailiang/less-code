@@ -1797,7 +1797,7 @@ registerConfig.register([
   },
 ]);
 // 导出配置
-export default registerConfig;
+export default registerConf·ig;
 ```
 
 - 新拖拽的元素也要有 props
@@ -1828,5 +1828,407 @@ const drop = (e) => {
 };
 ```
 
-- 属性的双向绑定设置
-- 比如输入框内容和 placeholder 等
+## 字段绑定（如输入框等）和数据双向绑定（model 属性就代表当前元素可以双向绑定字段）
+
+- 期望是给指定元素绑定指定字段。导出 json 时带有相应的字段，在实际应用中直接给数据即可
+
+  - 比如给页面拖拽两个输入框分别绑定账号字段和密码字段
+  - 注意应该给所有同类型的元素都添加上 model
+
+- 在 app.vue 中定义一个 form 表单字段,并将该对象传入编辑器中待绑定
+- app.vue
+
+```js
+//传入到编辑器中
+<template>
+  <div class="lcdp">
+    <Editor v-model="state" :formData="formData" />
+  </div>
+</template>
+// 定义待绑定的表单字段-后面完全支持双向自定义，你绑定什么，就是什么
+const formData = ref({
+  username: "用户名",
+  pwd: "密码",
+});
+```
+
+- packages/editor/index.s
+
+```js
+  props: {
+    // 动态给输入框绑定的字段
+    formData: {
+      type: Object,
+    },
+  },
+```
+
+> 为组件新增 model 属性，通过判断该数据确认组件是否可以进行数据的双向绑定
+
+- packages/editor/right
+
+```js
+
+        // 通过判断组件的model字段判断是否可以绑定字段，数据双向绑定
+        if (component && component.model) {
+          content.push(
+            Object.entries(component.model).map(([modelName, label]) => {
+              return (
+                <ElFormItem label={label}>
+                  <ElInput v-model={state.editData.model[modelName]}></ElInput>
+                </ElFormItem>
+              );
+            })
+          );
+        }
+      }
+```
+
+- 在画布上组件元素如果有 model 属性，render 时，带上 model，并注册 onUpdate:modelValue 事件，实现数据双向绑定
+- packages/bloack
+
+```js
+    return () => {
+      const component = config.componentMap[props.block.key];
+      // 此处render是组件自己的render，props:是该组件所有的可配置的属性
+      const renderComponent = component.render({
+        props: props.block.props,
+        // 通过model实现数据绑定，以及通过onUpdate:modelValue数据双向绑定
+        model: Object.keys(component.model || {}).reduce((prev, modelName) => {
+          let propName = props.block.model[modelName];
+          prev[modelName] = {
+            modelValue: props.formData[propName],
+            // eslint-disable-next-line vue/no-mutating-props
+            "onUpdate:modelValue": (v) => (props.formData[propName] = v),
+          };
+          return prev;
+        }, {}),
+      });
+```
+
+- 通过 render 拿到 model，并且把值渲染到组件上，搞定
+- utils/editor-config
+
+```js
+  {
+    label: "输入框",
+    preview: () => <ElInput placeholder="预览输入框" />,
+    render: ({ model }) => {
+      return <ElInput placeholder="请输入" {...model.default} />;
+    },
+    key: "input",
+    props: {
+      text: createInputProp("文本内容"),
+    },
+    model: {
+      default: "绑定字段",
+    },
+  },
+```
+
+## 区间/范围/多个字段同时进行双向绑定
+
+1. 组册物料
+
+- utils/editor-config
+
+```js
+  {
+    label: "范围选择器",
+    preview: () => <Range />,
+    render: ({ model }) => {
+      console.log("range", model);
+      return (
+        <Range
+          {...{
+            start: model.start.modelValue,
+            end: model.end.modelValue,
+            "onUpdate:start": model.start["onUpdate:modelValue"],
+            "onUpdate:end": model.end["onUpdate:modelValue"],
+          }}
+        />
+      );
+    },
+    model: {
+      start: "开始范围",
+      end: "结束范围",
+    },
+    key: "range",
+  },
+```
+
+2. 自定义组件
+
+- components/Range
+
+```js
+import { defineComponent, computed } from "vue";
+import "./style/index.less";
+export default defineComponent({
+  props: {
+    start: { type: Number },
+    end: { type: Number },
+  },
+  emits: ["update:start", "update:end"],
+  setup(props, ctx) {
+    const start = computed({
+      get() {
+        return props.start;
+      },
+      set(newValue) {
+        ctx.emit("update:start", newValue);
+      },
+    });
+    const end = computed({
+      get() {
+        return props.end;
+      },
+      set(newValue) {
+        ctx.emit("update:end", newValue);
+      },
+    });
+    return () => {
+      return (
+        <div class="range">
+          <input type="text" v-model={start.value} />
+          <span>~</span>
+          <input type="text" v-model={end.value} />
+        </div>
+      );
+    };
+  },
+});
+```
+
+3. 还是根据 model 判断，不过在注册时注册了两个数据，绑定时也是分别绑定很监听
+
+## 实现 select 组件下拉数据增删改和 select 组件字段绑定
+
+> 期望拖拽过来的 select 下拉框可以自定义选项，双向绑定字段，导出即用
+
+- 从物料区拖拽到画布，选择组件，如果当前组件没有下拉数据，右侧属性框则展示添加按钮，如果有下拉数据则直接展示下拉选项，点击右侧属性框中的添加按钮或者点击下拉数据，弹出编辑框，在编辑框内可以对下拉选项数据进行增删改，
+- 为 select 添加 model 属性，下拉框增加数据双向绑定的功能，增加完下拉选项后，保存生效即可绑定字段
+
+1. 注册物料
+   - utils/editor-config
+
+```js
+{
+    label: "下拉框",
+    preview: () => <ElSelect modelValue=""></ElSelect>,
+    render: ({ props, model }) => {
+      return (
+        <ElSelect {...model.default}>
+          {(props.options || []).map((item, index) => {
+            return (
+              <ElOption
+                label={item.label}
+                value={item.value}
+                key={index}
+              ></ElOption>
+            );
+          })}
+        </ElSelect>
+      );
+    },
+    key: "select",
+    props: {
+      options: createTableProp("下拉选项", {
+        options: [
+          {
+            label: "显示值",
+            field: "label",
+          },
+          {
+            label: "绑定值",
+            field: "value",
+          },
+        ],
+        key: "label",
+      }),
+    },
+    model: {
+      default: "绑定字段",
+    },
+  },
+```
+
+2. 创建弹窗组建
+   - components/TableDialog
+
+```js
+import { defineComponent, createVNode, render, reactive } from "vue";
+import deepcopy from "deepcopy";
+import {
+  ElDialog,
+  ElButton,
+  ElTable,
+  ElTableColumn,
+  ElInput,
+} from "element-plus";
+let vm;
+const tableComponent = defineComponent({
+  props: {
+    option: {
+      type: Object,
+    },
+  },
+  setup(props, ctx) {
+    const state = reactive({
+      option: props.option,
+      isShow: false,
+      editData: [], // 数据
+    });
+    let methods = {
+      show(option) {
+        state.option = option; // 配置选项
+        state.isShow = true; // 控制展示
+        state.editData = deepcopy(option.data); // 默认展示数据
+      },
+    };
+    ctx.expose(methods);
+    // 添加一个select选项
+    const addSelectItem = () => {
+      state.editData.push({});
+    };
+    // 取消
+    const onConcel = () => {
+      state.isShow = false;
+    };
+    // 确认
+    const onConfirm = () => {
+      state.option.onConfirm(state.editData);
+      onConcel();
+    };
+    return () => {
+      return (
+        <ElDialog v-model={state.isShow} title={state.option.config.label}>
+          {{
+            default: () => (
+              <div>
+                <div>
+                  <ElButton type="primary" onClick={addSelectItem}>
+                    添加
+                  </ElButton>
+                  <ElButton>重置</ElButton>
+                </div>
+                <ElTable data={state.editData}>
+                  <ElTableColumn type="index"></ElTableColumn>
+                  {state.option.config.table.options.map((item) => {
+                    return (
+                      <ElTableColumn label={item.label}>
+                        {{
+                          default: ({ row }) => (
+                            <ElInput v-model={row[item.field]} />
+                          ),
+                        }}
+                      </ElTableColumn>
+                    );
+                  })}
+                  <ElTableColumn label="操作">
+                    <ElButton type="danger">删除</ElButton>
+                  </ElTableColumn>
+                </ElTable>
+              </div>
+            ),
+            footer: () => (
+              <>
+                <ElButton onClick={onConfirm} type="primary">
+                  确认
+                </ElButton>
+                <ElButton onClick={onConcel}>取消</ElButton>
+              </>
+            ),
+          }}
+        </ElDialog>
+      );
+    };
+  },
+});
+
+export const $tableDialog = (option) => {
+  if (!vm) {
+    const el = document.createElement("div");
+    vm = createVNode(tableComponent, { option });
+    render(vm, el);
+    document.body.appendChild(el);
+  }
+  let { show } = vm.component.exposed;
+  show(option);
+};
+```
+
+3. 右侧属性菜单新增类型（table）
+
+- packages/right
+
+```js
+        table: () => (
+        <selectEditor
+         propConfig={propconfig}
+         v-model={state.editData.props[propsname]}
+        />
+         ),
+```
+
+4. 配置点击弹窗和参数传递
+
+- packages/right/utils/select-editor
+
+```js
+import { defineComponent, computed } from "vue";
+import deepcopy from "deepcopy";
+import { ElButton, ElTag } from "element-plus";
+import { $tableDialog } from "../../../../components";
+export default defineComponent({
+  props: {
+    propConfig: {
+      type: Object,
+    },
+    modelValue: {
+      type: Array,
+    },
+  },
+  emits: ["update:modelValue"],
+  setup(props, ctx) {
+    const data = computed({
+      get() {
+        return props.modelValue || [];
+      },
+      set(newValue) {
+        ctx.emit("update:modelValue", deepcopy(newValue));
+      },
+    });
+    const editSelect = () => {
+      // 打开对话框编辑下拉框选项
+      $tableDialog({
+        config: props.propConfig,
+        data: data.value,
+        onConfirm(value) {
+          data.value = value;
+        },
+      });
+    };
+    return () => {
+      // 没有数据，显示按钮.点击按钮配置下来选项
+      return (
+        <div>
+          {!data.value ||
+            (data.value.length == 0 && (
+              <ElButton onClick={editSelect}>添加</ElButton>
+            ))}
+          {(data.value || []).map((item) => (
+            <ElTag onClick={editSelect}>
+              {item[props.propConfig.table.key]}
+            </ElTag>
+          ))}
+        </div>
+      );
+    };
+  },
+});
+```
+
+5. 双向绑定 select 数据
+
+- 增加 model 属性即可
