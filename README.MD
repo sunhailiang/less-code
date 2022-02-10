@@ -2232,3 +2232,253 @@ export default defineComponent({
 5. 双向绑定 select 数据
 
 - 增加 model 属性即可
+
+## 可视化调整元素大小
+
+1. 给组件新增“resize”字段，这个标志可以操作
+   - utils/editor-config
+
+```js
+// 为允许可视化调整大小的元素添加resize属性
+// 至于横向？纵向？自己控制即可
+```
+
+2. 新建 resize 组件用于位置同步，拖拽效果等等
+
+```js
+import { defineComponent } from "vue";
+import "./index.less";
+export default defineComponent({
+  props: {
+    block: {
+      type: Object,
+    },
+    component: {
+      type: Object,
+    },
+  },
+  setup(props) {
+    const { width, height } = props.component.resize || {};
+    let data = {};
+    const onMouseDown = (e, direction) => {
+      e.stopPropagation();
+      data = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidth: props.block.width,
+        startHeight: props.block.height,
+        startLeft: props.block.left,
+        startTop: props.block.top,
+        direction,
+      };
+      document.body.addEventListener("mousemove", onMouseMove);
+      document.body.addEventListener("mouseup", onMouseUp);
+    };
+    const onMouseMove = (e) => {
+      // 移动位置
+      let { clientX, clientY } = e;
+      // 原有数据
+      let {
+        startX,
+        startY,
+        startWidth,
+        startHeight,
+        startLeft,
+        startTop,
+        direction,
+      } = data;
+      // 拖动水平中间点时， x轴不能变化
+      if (direction.horizontal == "center") {
+        clientX = startX;
+      }
+      // 拖动垂直中间点时，y轴不能变化
+      if (direction.vertical == "center") {
+        clientY = startY;
+      }
+
+      // 计算数据
+      let durX = clientX - startX;
+      let durY = clientY - startY;
+
+      //解决顶部的三个点拖动时的异常,反方向则取反
+      if (direction.vertical == "start") {
+        durY = -durY;
+        // eslint-disable-next-line vue/no-mutating-props
+        props.block.top = startTop - durY;
+      }
+      if (direction.horizontal == "start") {
+        durX = -durX;
+        // eslint-disable-next-line vue/no-mutating-props
+        props.block.left = startLeft - durX;
+      }
+      const width = startWidth + durX;
+      const height = startHeight + durY;
+      // 重置元素宽高
+      // eslint-disable-next-line vue/no-mutating-props
+      props.block.width = width;
+      // eslint-disable-next-line vue/no-mutating-props
+      props.block.height = height;
+      // 添加一个标志，表示重置过元素宽高了
+      // eslint-disable-next-line vue/no-mutating-props
+      props.block.hasResize = true;
+    };
+    const onMouseUp = () => {
+      document.body.removeEventListener("mousemove", onMouseMove);
+      document.body.removeEventListener("mouseup", onMouseUp);
+    };
+    return () => {
+      return (
+        <>
+          {/* 如果width，则确定宽度可调整，渲染元素选中的可调整样式 */}
+          {width && (
+            <>
+              <div
+                class="resize left"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "start", vertical: "center" })
+                }
+                style={{
+                  cursor: "w-resize",
+                }}
+              ></div>
+              <div
+                class="resize right"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "end", vertical: "center" })
+                }
+                style={{
+                  cursor: "e-resize",
+                }}
+              ></div>
+            </>
+          )}
+          {/* 如果height，则确定高度可调整，渲染元素选中的可调整样式 */}
+          {height && (
+            <>
+              <div
+                class="resize top"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "center", vertical: "start" })
+                }
+                style={{
+                  cursor: "n-resize",
+                }}
+              ></div>
+              <div
+                class="resize bottom"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "center", vertical: "end" })
+                }
+                style={{
+                  cursor: "s-resize",
+                }}
+              ></div>
+            </>
+          )}
+          {/* width和height都有表示宽高皆可调整 */}
+          {width && height && (
+            <>
+              <div
+                class="resize top-left"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "start", vertical: "start" })
+                }
+                style={{
+                  cursor: "nw-resize",
+                }}
+              ></div>
+              <div
+                class="resize top-right"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "end", vertical: "start" })
+                }
+                style={{
+                  cursor: "ne-resize",
+                }}
+              ></div>
+              <div
+                class="resize bottom-left"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "start", vertical: "end" })
+                }
+                style={{
+                  cursor: "sw-resize",
+                }}
+              ></div>
+              <div
+                class="resize bottom-right"
+                onMousedown={(e) =>
+                  onMouseDown(e, { horizontal: "end", vertical: "end  " })
+                }
+                style={{
+                  cursor: "se-resize",
+                }}
+              ></div>
+            </>
+          )}
+        </>
+      );
+    };
+  },
+});
+```
+
+2. 在组件 render 之前判断当前组件有没有调整过宽高
+
+- 在 render 时添加一个 size 属性，该属性用来放调整过的数据
+- package/block
+
+```js
+const component = config.componentMap[props.block.key];
+// 此处render是组件自己的render，props:是该组件所有的可配置的属性
+const renderComponent = component.render({
+  //判断有没有重置过
+  size: props.block.hasResize
+    ? { width: props.block.width, height: props.block.height }
+    : {},
+});
+```
+
+4. 如果重置过在画布组件就要更新宽高
+
+- utils/editor-config
+- 凡是需要自定义调整宽高的都要拿到 render 时传过来的 size 重新赋值
+
+```js
+  {
+    label: "按钮",
+    preview: () => <ElButton type="success">预览按钮</ElButton>,
+    // 此处的props是在拖拽时，传进来的该组件自带的可配置的参数
+    render: ({ props, size }) => (
+      <ElButton
+        type={props.type}
+        size={props.size}
+        // 取出render时出传过来的size
+        style={{ width: size.width + "px", heigt: size.height + "px" }}
+      >
+        {props.text || "按钮"}
+      </ElButton>
+    ),
+    key: "button",
+    props: {
+      text: createInputProp("按钮文本"),
+      color: createColor("字体颜色"),
+      type: createSelectProp("按钮类型", [
+        { label: "基础", value: "primary" },
+        { label: "成功", value: "success" },
+        { label: "警告", value: "warning" },
+        { label: "失败", value: "danger" },
+        { label: "文本", value: "text" },
+      ]),
+      size: createSelectProp("按钮尺寸", [
+        { label: "大", value: "large" },
+        { label: "默认", value: "default" },
+        { label: "小", value: "small" },
+      ]),
+    },
+    resize: {
+      width: true,
+      height: true,
+    },
+  },
+```

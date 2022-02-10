@@ -1,5 +1,6 @@
 import { defineComponent, computed, inject, onMounted, ref } from "vue";
 import "./index.less";
+import Resize from "./components/resize/";
 export default defineComponent({
   props: {
     block: {
@@ -40,6 +41,9 @@ export default defineComponent({
       const component = config.componentMap[props.block.key];
       // 此处render是组件自己的render，props:是该组件所有的可配置的属性
       const renderComponent = component.render({
+        size: props.block.hasResize
+          ? { width: props.block.width, height: props.block.height }
+          : {},
         props: props.block.props,
         // 通过model实现数据绑定，以及通过onUpdate:modelValue数据双向绑定
         model: Object.keys(component.model || {}).reduce((prev, modelName) => {
@@ -52,9 +56,16 @@ export default defineComponent({
           return prev;
         }, {}),
       });
+      // 可视化调整元素宽高
+      const { width, height } = component.resize || {};
       return (
         <div class="block" style={blockStyle.value} ref={blockRef}>
           {renderComponent}
+          {/* 获取焦点后如果有width或者height那么就展示可拖拽的样式 */}
+          {/* 传递block修改当前元素宽高，传递component可以确认修改宽度还是高度 */}
+          {props.block.focus && (width || height) && (
+            <Resize block={props.block} component={component}></Resize>
+          )}
         </div>
       );
     };

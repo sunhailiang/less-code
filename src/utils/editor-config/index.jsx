@@ -36,8 +36,16 @@ registerConfig.register([
     label: "文本",
     preview: () => "文本预览",
     // 此处的props是在拖拽时，传进来的该组件自带的可配置的参数
-    render: ({ props }) => (
-      <span style={{ color: props.color, fontSize: props.size }}>
+    render: ({ props, size }) => (
+      <span
+        style={{
+          color: props.color,
+          display: "inline-block",
+          fontSize: props.size,
+          width: size.width + "px",
+          height: size.height + "px",
+        }}
+      >
         {props.text || "渲染文本"}
       </span>
     ),
@@ -54,13 +62,21 @@ registerConfig.register([
         { label: "20px", value: "20px" },
       ]),
     },
+    resize: {
+      width: true,
+      height: true,
+    },
   },
   {
     label: "按钮",
     preview: () => <ElButton type="success">预览按钮</ElButton>,
     // 此处的props是在拖拽时，传进来的该组件自带的可配置的参数
-    render: ({ props }) => (
-      <ElButton type={props.type} size={props.size}>
+    render: ({ props, size }) => (
+      <ElButton
+        type={props.type}
+        size={props.size}
+        style={{ width: size.width + "px", height: size.height + "px" }}
+      >
         {props.text || "按钮"}
       </ElButton>
     ),
@@ -81,12 +97,22 @@ registerConfig.register([
         { label: "小", value: "small" },
       ]),
     },
+    resize: {
+      width: true,
+      height: true,
+    },
   },
   {
     label: "输入框",
     preview: () => <ElInput placeholder="预览输入框" />,
-    render: ({ model }) => {
-      return <ElInput placeholder="请输入" {...model.default} />;
+    render: ({ model, size }) => {
+      return (
+        <ElInput
+          placeholder="请输入"
+          {...model.default}
+          style={{ width: size.width + "px" }}
+        />
+      );
     },
     key: "input",
     props: {
@@ -94,6 +120,9 @@ registerConfig.register([
     },
     model: {
       default: "绑定字段",
+    },
+    resize: {
+      width: true,
     },
   },
   {
